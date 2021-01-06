@@ -8,30 +8,32 @@
 </head>
 
 <body>
-    <div id="app" style="width: 200px;color:blue;margin: 100px auto;">
-      <p>hello - {{name}} - {{arr}}</p>
-    </div>
-    <script src="/dist/umd/vue.js"></script>
-    <script>
-      let vm = new Vue({
-        el: "#app",
-        data() {
-          return {
-            name: 'yctang', arr: [1]
-          }
-        }
-      })
-      setTimeout(() => {
-        vm.arr.push(2)
-        vm.arr.push(3)
-        vm.arr.push(4)
+  <div id="app" style="color: blue;width: 300px;">
+    <my-component></my-component>
 
-        vm.$nextTick(() => {
-          console.log(vm.$el.innerHTML)  // <p>hello-yctang-[1,2,3,4]</p>
-        })
-      }, 2000);
+  </div>
+  <script src="/dist/umd/vue.js">  </script>
+  <script>
+    Vue.component('my-component', {
+      template: "<div>tyc</div>"
+    })
+    let vm = new Vue({
+      el: "#app",
+      data() {
+        return { name: '1', arr: [1, 2, 3] }
+      }
+    })
 
-    </script>
+    // setTimeout(() => {
+    //   vm.arr.push(4)
+    //   vm.arr.push(7)
+    // }, 2000)
+    // console.log(vm.$options)
+    // vm.$nextTick(() => {
+    //   console.log(vm.$el.innerHTML)
+    // })
+
+  </script>
 </body>
 
 </html>

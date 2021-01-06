@@ -3,11 +3,9 @@ export function createElement(tag, data = {}, ...children) {
   if (key) {
     delete data.key;
   }
-  // 返回标签节点
   return vnode(tag, data, key, children, undefined)
 }
 export function createTextNode(text) {
-  // 文本节点只需要返回 text 文本
   return vnode(undefined, undefined, undefined, undefined, text);
 }
 

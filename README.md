@@ -1,1 +1,0 @@
-# write-vue2-core

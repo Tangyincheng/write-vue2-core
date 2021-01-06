@@ -12,12 +12,32 @@ export function lifecycleMixin(Vue) {
 export function mountComponent(vm, el) {
   const options = vm.$options;
   vm.$el = el; // 真实的dom元素
+
+  // Watcger 用于渲染
+  // vm._render 通过解析render方法 渲染出虚拟dom _c _v _s
+  // vm._update 通过虚拟dom 创建真实的dom
+
+  // 调用 boforeMount
+  callHook(vm, 'beforeMount');
   // 渲染页面
   let updateComponent = () => { // 无论是渲染还是更新都会调用此方法
     // 返回的是虚拟dom
-    console.log("watcher");
+    // 由Watcher监听render生成vnode，并由update生成真实dom并挂载
     vm._update(vm._render());
   }
   // 渲染watcher 每个组件都有一个watcher vm.$watch(()=>{})
   new Watcher(vm, updateComponent, () => { }, true) // true 表示他是一个渲染watcher
+
+  // 调用 mounted
+  callHook(vm, 'mounted');
+}
+
+export function callHook(vm, hook) {
+  const handlers = vm.$options[hook];
+  // 找到对应的钩子一次执行
+  if (handlers) {
+    for (let i = 0; i < handlers.length; i++) {
+      handlers[i].call(vm)
+    }
+  }
 }
