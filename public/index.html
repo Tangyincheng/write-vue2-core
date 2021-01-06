@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+    <div id="app" style="width: 200px;color:blue;margin: 100px auto;">
+      <p>hello - {{name}} - {{arr}}</p>
+    </div>
+    <script src="/dist/umd/vue.js"></script>
+    <script>
+      let vm = new Vue({
+        el: "#app",
+        data() {
+          return {
+            name: 'yctang', arr: [1]
+          }
+        }
+      })
+      setTimeout(() => {
+        vm.arr.push(2)
+        vm.arr.push(3)
+        vm.arr.push(4)
+
+        vm.$nextTick(() => {
+          console.log(vm.$el.innerHTML)  // <p>hello-yctang-[1,2,3,4]</p>
+        })
+      }, 2000);
+
+    </script>
+</body>
+
+</html>
