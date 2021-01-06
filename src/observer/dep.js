@@ -7,13 +7,11 @@ class Dep {
   addSub(watcher) {
     this.subs.push(watcher); // 观察者模式
   }
-  // 收集 Watcher
   depend() {
     //让这个watcher记住当前的dep,如果watcher没存过dep，dep肯定不能存过watcher
     Dep.target.addDep(this);
     // this.subs.push(Dep.target)  // 观察者模式
   }
-  // 触发 Watcher
   notify() {
     this.subs.forEach(watcher => watcher.update())
   }
@@ -21,7 +19,6 @@ class Dep {
 let stack = [];
 // 目前可以做到 将watcher保留起来 和 移除的功能
 export function pushTarget(watcher) {
-  // Dep.target === watcher
   Dep.target = watcher;
   stack.push(watcher);
 }

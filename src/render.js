@@ -14,7 +14,7 @@ export function renderMixin(Vue) {
   Vue.prototype._s = function (val) {
     return val == null ? '' : (typeof val === 'object' ? JSON.stringify(val) : val)
   }
-  // ----- 添加代码
+
   Vue.prototype._render = function () {
     const vm = this;
 
@@ -24,5 +24,4 @@ export function renderMixin(Vue) {
 
     return vnode;
   }
-  // -----
 }

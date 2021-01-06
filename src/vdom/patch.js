@@ -15,6 +15,7 @@ export function patch(oldVnode, vnode) {
     // 需要将渲染好的结果返回
     return el;
   }
+
 }
 
 // 根据虚拟节点创建真实的节点

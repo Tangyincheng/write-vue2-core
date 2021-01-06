@@ -25,7 +25,6 @@ export function parseHTML(html) {
     }
   }
 
-  // 开始标签
   function start(tagName, attrs) {
     // 遇到开始标签 就创建一个ast元素
     let element = createASTElement(tagName, attrs);
@@ -38,9 +37,7 @@ export function parseHTML(html) {
     stack.push(element);
   }
 
-  // 文本
   function chars(text) {
-    // 去掉空格
     text = text.replace(/\s/g, '');
     if (text) {
       currentParent.children.push({
@@ -50,7 +47,6 @@ export function parseHTML(html) {
     }
   }
 
-  // 结束标签
   function end(tagName) {
     let element = stack.pop();  // 拿到的是ast对象
     // 标识当前这个标签属于这个div的儿子
@@ -65,7 +61,7 @@ export function parseHTML(html) {
   while (html) {
     let textEnd = html.indexOf('<');
     if (textEnd == 0) {
-      // 如果当前索引为0 肯定是一个标签 开始标签或者结束标签
+      // 如果当前索引为0 肯定是一个标签或者结束标签
       let startTagMatch = parseStartTag(); // 通过这个方法获取到匹配的结果 tagName,attrs
       if (startTagMatch) {
         start(startTagMatch.tagName, startTagMatch.attrs); // 1. 解析开始标签
@@ -84,7 +80,7 @@ export function parseHTML(html) {
     }
     if (text) {
       advance(text.length);
-      chars(text); // 3.解析文本
+      chars(text); // 3.解析文本 
     }
   }
 
@@ -109,7 +105,6 @@ export function parseHTML(html) {
         advance(attr[0].length); // 将属性去掉
         match.attrs.push({
           name: attr[1],
-          // attr[3] 双引号属性值；attr[4] 单引号属性值；attr[5] 无引号属性值
           value: attr[3] || attr[4] || attr[5]
         })
       }
@@ -119,6 +114,7 @@ export function parseHTML(html) {
         return match;
       }
     }
+
   }
   return root;
 }

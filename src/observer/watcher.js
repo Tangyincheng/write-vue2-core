@@ -1,9 +1,10 @@
 import { pushTarget, popTarget } from './dep.js';
 import { queueWatcher } from './schedule';
 
+// 保证watcher得唯一性
 let id = 0;
 
-class Wathcer {
+class Watcher {
   constructor(vm, exprOrFn, callback, options) {
     this.vm = vm;
     this.callback = callback;
@@ -20,45 +21,25 @@ class Wathcer {
     let id = dep.id;
     if (!this.depsId.has(id)) {
       this.depsId.add(id);
-      this.deps.push(dep);
+      this.deps.push(id);
       dep.addSub(this);
     }
   }
 
   get() {
-    pushTarget(this); // 把watcher存起来
-    this.getter();  // 渲染watcher执行
+    pushTarget(this); // 把watcher存起来 Dep.target
+    this.getter();  // 渲染watcher执行 render
     popTarget(); // 移除watcher
   }
+  
   update() {
     // 等待着 一起更新 因为每次调用update的时候 都放入了watcher
     // this.get()
-    // ----- 添加代码
     queueWatcher(this);
-    // -----
   }
-  // ----- 添加代码
   run() {
     this.get();
   }
-  // -----
 }
 
-// ----- 添加代码
-// let queue = [];
-// let has = {};
-
-// function queueWatcher(watcher) {
-//   const id = watcher.id;
-//   if (has[id] == null) {
-//     queue.push(watcher);
-//     has[id] = true;
-//     setTimeout(function () {
-//       queue.forEach(watcher => watcher.run())
-//       queue = [];
-//       has = {};
-//     })
-//   }
-// }
-// -----
-export default Wathcer;
+export default Watcher;

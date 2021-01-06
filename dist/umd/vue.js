@@ -4,27 +4,235 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 }(this, (function () { 'use strict';
 
+  function _typeof(obj) {
+    "@babel/helpers - typeof";
+
+    if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+      _typeof = function (obj) {
+        return typeof obj;
+      };
+    } else {
+      _typeof = function (obj) {
+        return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+      };
+    }
+
+    return _typeof(obj);
+  }
+
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  function _defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  function _createClass(Constructor, protoProps, staticProps) {
+    if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) _defineProperties(Constructor, staticProps);
+    return Constructor;
+  }
+
+  function _defineProperty(obj, key, value) {
+    if (key in obj) {
+      Object.defineProperty(obj, key, {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    } else {
+      obj[key] = value;
+    }
+
+    return obj;
+  }
+
+  function ownKeys(object, enumerableOnly) {
+    var keys = Object.keys(object);
+
+    if (Object.getOwnPropertySymbols) {
+      var symbols = Object.getOwnPropertySymbols(object);
+      if (enumerableOnly) symbols = symbols.filter(function (sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      });
+      keys.push.apply(keys, symbols);
+    }
+
+    return keys;
+  }
+
+  function _objectSpread2(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i] != null ? arguments[i] : {};
+
+      if (i % 2) {
+        ownKeys(Object(source), true).forEach(function (key) {
+          _defineProperty(target, key, source[key]);
+        });
+      } else if (Object.getOwnPropertyDescriptors) {
+        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+      } else {
+        ownKeys(Object(source)).forEach(function (key) {
+          Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+        });
+      }
+    }
+
+    return target;
+  }
+
+  function _slicedToArray(arr, i) {
+    return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+  }
+
+  function _arrayWithHoles(arr) {
+    if (Array.isArray(arr)) return arr;
+  }
+
+  function _iterableToArrayLimit(arr, i) {
+    if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return;
+    var _arr = [];
+    var _n = true;
+    var _d = false;
+    var _e = undefined;
+
+    try {
+      for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+        _arr.push(_s.value);
+
+        if (i && _arr.length === i) break;
+      }
+    } catch (err) {
+      _d = true;
+      _e = err;
+    } finally {
+      try {
+        if (!_n && _i["return"] != null) _i["return"]();
+      } finally {
+        if (_d) throw _e;
+      }
+    }
+
+    return _arr;
+  }
+
+  function _unsupportedIterableToArray(o, minLen) {
+    if (!o) return;
+    if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+    var n = Object.prototype.toString.call(o).slice(8, -1);
+    if (n === "Object" && o.constructor) n = o.constructor.name;
+    if (n === "Map" || n === "Set") return Array.from(o);
+    if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+  }
+
+  function _arrayLikeToArray(arr, len) {
+    if (len == null || len > arr.length) len = arr.length;
+
+    for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+
+    return arr2;
+  }
+
+  function _nonIterableRest() {
+    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+
+  var isObject = function isObject(val) {
+    return _typeof(val) === "object" && val !== null;
+  };
+  function def(data, key, value) {
+    Object.defineProperty(data, key, {
+      enumerable: false,
+      configurable: true,
+      value: value
+    });
+  } // 生命周期列举
+
+  var LIFECYCLE_HOOKS = ['beforeCreate', 'created', 'beforeMount', 'mounted', 'beforeUpdate', 'updated', 'beforeDestroy', 'destroyed', 'activated', 'deactivated', 'errorCaptured'];
+  var strats = {};
+
+  function mergeHook(parentVal, childVal) {
+    if (childVal) {
+      if (parentVal) {
+        return parentVal.concat(childVal);
+      } else {
+        return [childVal];
+      }
+    } else {
+      return parentVal;
+    }
+  } // 合并生命周期
+
+
+  LIFECYCLE_HOOKS.forEach(function (hook) {
+    strats[hook] = mergeHook;
+  });
+  function mergeOptions(parent, child) {
+    var options = {}; // 将 parent 上的属性与 child 进行合并
+
+    for (var key in parent) {
+      mergeFild(key);
+    } // 将 child 上的属性与 parent 进行合并
+
+
+    for (var _key in child) {
+      // 如果已经合并过了就不需要再次合并了
+      if (!parent.hasOwnProperty(_key)) {
+        mergeFild(_key);
+      }
+    } // 默认的合并策略 但是有些属性 需要有特殊的合并方式 生命周期的合并
+
+
+    function mergeFild(key) {
+      // ----- 添加代码
+      // 生命周期合并，另作处理（声明了多个相同的生命周期已数组的方式合并）
+      if (strats[key]) {
+        return options[key] = strats[key](parent[key], child[key]);
+      } // -----
+      // parent 和 child 都是对象
+
+
+      if (_typeof(parent[key]) === 'object' && _typeof(child[key]) === 'object') {
+        options[key] = _objectSpread2(_objectSpread2({}, parent[key]), child[key]);
+      } else if (child[key] === null) {
+        options[key] = parent[key];
+      } else {
+        options[key] = child[key];
+      }
+    }
+
+    return options;
+  }
+
   // 重写会导致数组本身发生变化的方法 push、shift、unshift、pop、reverse、sort、splice
-  // 获取所有数组中的方法
-  let oldArrayMethods = Array.prototype; // value.__proto__ = arrayMethods  原型链查找
+  var oldArrayMethods = Array.prototype; // value.__proto__ = arrayMethods  原型链查找
   // arrayMethods.__proto__ = oldArrayMethods
-  // 数组中的方法拷贝
 
-  const arrayMethods = Object.create(oldArrayMethods); // 需要重写的数组方法
+  var arrayMethods = Object.create(oldArrayMethods);
+  var methods = ['push', 'shift', 'unshift', 'pop', 'sort', 'splice', 'reverse'];
+  methods.forEach(function (method) {
+    arrayMethods[method] = function () {
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
 
-  const methods = ['push', 'shift', 'unshift', 'pop', 'sort', 'splice', 'reverse']; // 对每一个方法进行重写
-
-  methods.forEach(method => {
-    arrayMethods[method] = function (...args) {
-      console.log('用户调用了push方法'); // AOP 切片编程
-
-      const result = oldArrayMethods[method].apply(this, args); // 调用原生的数组方法
+      // AOP 切片编程
+      var result = oldArrayMethods[method].apply(this, args); // 调用原生的数组方法
       // push unshift 添加的元素可能还是一个对象
 
-      let inserted; // 当前用户插入的元素
+      var inserted; // 当前用户插入的元素
 
-      let ob = this.__ob__; // 对push、unshift和splice这三个方法单独重写
-      // 因为这三个方法中添加的值可能又是一个对象，也需要做数据劫持
+      var ob = this.__ob__;
 
       switch (method) {
         case 'push':
@@ -38,45 +246,51 @@
       }
 
       if (inserted) {
-        // 对push、unshift和splice三个方法新增的值做数据劫持
         ob.observeArray(inserted); // 将新增属性继续观测
       }
 
-      ob.dep.notify(); // 如果用户调用了 push 方法 就通知当前这个dep更新
+      ob.dep.notify(); // 如果用户调用了 push方法 就通知当前这个dep更新
 
       return result;
     };
   });
 
-  let id = 0;
+  var id = 0;
 
-  class Dep {
-    constructor() {
+  var Dep = /*#__PURE__*/function () {
+    function Dep() {
+      _classCallCheck(this, Dep);
+
       this.id = id++;
       this.subs = []; // age:[watcher, watcher]
     }
 
-    addSub(watcher) {
-      this.subs.push(watcher); // 观察者模式
-    } // 收集 Watcher
+    _createClass(Dep, [{
+      key: "addSub",
+      value: function addSub(watcher) {
+        this.subs.push(watcher); // 观察者模式
+      }
+    }, {
+      key: "depend",
+      value: function depend() {
+        //让这个watcher记住当前的dep,如果watcher没存过dep，dep肯定不能存过watcher
+        Dep.target.addDep(this); // this.subs.push(Dep.target)  // 观察者模式
+      }
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          return watcher.update();
+        });
+      }
+    }]);
 
+    return Dep;
+  }();
 
-    depend() {
-      //让这个watcher记住当前的dep,如果watcher没存过dep，dep肯定不能存过watcher
-      Dep.target.addDep(this); // this.subs.push(Dep.target)  // 观察者模式
-    } // 触发 Watcher
-
-
-    notify() {
-      this.subs.forEach(watcher => watcher.update());
-    }
-
-  }
-
-  let stack = []; // 目前可以做到 将watcher保留起来 和 移除的功能
+  var stack = []; // 目前可以做到 将watcher保留起来 和 移除的功能
 
   function pushTarget(watcher) {
-    // Dep.target === watcher
     Dep.target = watcher;
     stack.push(watcher);
   }
@@ -85,66 +299,71 @@
     Dep.target = stack[stack.length - 1];
   }
 
-  class Observer {
-    constructor(value) {
+  // Object.defineProperty 不能兼容ie8及以下 vue2 无法兼容ie8及以下版本
+
+  var Observer = /*#__PURE__*/function () {
+    function Observer(value) {
+      _classCallCheck(this, Observer);
+
       // 仅仅是初始化的操作
       this.dep = new Dep(); // 这个dep是给数组用的
-      // 在value上添加 __ob__ 属性，该属性的值等于 this，即 Observer。
-      // 目的：为了在重写数组的方法中能够调用 observeArray。
-      // 这里设置 enumerable：false，是为了防止死循环，而造成内存移除
+      // 如果vue的数据层次过多，需要递归解析对象中的属性，依次增加set和get方法
+      // value.__ob__ = this; // 给每个监控过的对象都增加一个__bo__属性
 
-      Object.defineProperty(value, "__ob__", {
-        enumerable: false,
-        configurable: true,
-        value: this
-      }); // 如果vue的数据层次过多，需要递归解析对象中的属性，依次增加set和get方法
+      def(value, '__ob__', this);
 
       if (Array.isArray(value)) {
-        value.__proto__ = arrayMethods;
+        // 如果是数组的话，并不会对索引进行观测，因为会导致性能消耗过大
+        // 前端开发中很少操作索引    push  shift  unshift
+        value.__proto__ = arrayMethods; // 如果数组里放的是对象，再监控
+
         this.observeArray(value);
       } else {
         this.walk(value);
       }
     }
 
-    observeArray(value) {
-      for (let i = 0; i < value.length; i++) {
-        observe(value[i]);
+    _createClass(Observer, [{
+      key: "observeArray",
+      value: function observeArray(value) {
+        for (var i = 0; i < value.length; i++) {
+          observe(value[i]);
+        }
       }
-    }
+    }, {
+      key: "walk",
+      value: function walk(data) {
+        var keys = Object.keys(data); // 拿到所有的key
 
-    walk(data) {
-      let keys = Object.keys(data); // 拿到所有的key
+        keys.forEach(function (key) {
+          defineReactive(data, key, data[key]);
+        });
+      }
+    }]);
 
-      keys.forEach(key => {
-        defineReactive(data, key, data[key]);
-      });
-    }
-
-  }
+    return Observer;
+  }();
 
   function defineReactive(data, key, value) {
-    let dep = new Dep(); // 这个dep是给对象使用的
-    // 如果是多层级的对象，需要递归调用
+    var dep = new Dep(); // 这个dep是给对象使用的
+    // 递归实现深度检测
+    // 这里这个value可能是数组 也可能是对象，返回的结果是observer的实例，当前这个value对应的observer
 
-    let childOb = observe(value); // 递归实现深度检测
-    // 这里这个value可能是数组 也可能是对象，返回的结果boserver的实例，当前这个value对应的observer
-
+    var childOb = observe(value);
     Object.defineProperty(data, key, {
       configurable: true,
       enumerable: true,
-
       // 获取值的时候，做一些操作
-      get() {
+      get: function get() {
         // 每个属性都对应着自己的watcher
         if (Dep.target) {
-          console.log('收集'); // 如果当前有watcher，则需要将watcher存起来
-
-          dep.depend(); // 数组的依赖收集
+          // 如果当前有watcher，则需要将watcher存起来
+          dep.depend();
 
           if (childOb) {
-            // 收集数组的相关依赖
-            childOb.dep.depend(); // 如果数组中还有数组
+            // 数组的依赖收集
+            childOb.dep.depend(); // 收集数组的相关依赖
+            // 如果数组中还有数组
 
             if (Array.isArray(value)) {
               dependArray(value);
@@ -154,25 +373,21 @@
 
         return value;
       },
-
       // 设置值的时候做一些操作
-      set(newValue) {
-        // 数据改变时，如果新数据等于旧的数据，则不做处理
-        if (newValue === value) return;
-        console.log('数据变化'); // 继续劫持用户设置的值，因为用户设置的的值也是一个对象
+      set: function set(newValue) {
+        if (newValue === value) return; // 继续劫持用户设置的值，因为用户设置的的值也是一个对象
 
         observe(newValue);
         value = newValue;
         dep.notify(); // 通知依赖的watcher更新操作
       }
-
     });
   }
 
   function dependArray(value) {
-    for (let i = 0; i < value.length; i++) {
-      // 将数组中的每一项都取出来，数据变化后 也需要更新试图
-      let current = value[i]; // 数组中的数组的依赖收集
+    for (var i = 0; i < value.length; i++) {
+      var current = value[i]; // 将数组中的每一个都去出来，数据变化后 也需要更新试图
+      // 数组中的数组的依赖收集
 
       current.__ob__ && current.__ob__.dep.depend();
 
@@ -183,8 +398,7 @@
   }
 
   function observe(data) {
-    // 如果data不是对象，则不做处理
-    if (!(typeof data === "object" && data !== null)) {
+    if (!isObject(data)) {
       return;
     }
 
@@ -192,7 +406,7 @@
   }
 
   function initState(vm) {
-    const opts = vm.$options; // vue的数据来源 属性 方法 数据 计算属性 watch
+    var opts = vm.$options; // vue的数据来源 属性 方法 数据 计算属性 watch
 
     if (opts.props) ;
 
@@ -207,32 +421,28 @@
     if (opts.watch) ;
   }
 
-
   function proxy(vm, source, key) {
     Object.defineProperty(vm, key, {
-      get() {
+      get: function get() {
         return vm[source][key];
       },
-
-      set(newValue) {
+      set: function set(newValue) {
         vm[source][key] = newValue;
       }
-
     });
   }
 
   function initData(vm) {
     // 数据初始化工作
-    let data = vm.$options.data; // 用户传递的data
+    var data = vm.$options.data; // 用户传递的data
     // 用户可以通过 vm._data 拿到data
-    // 用户传参中的data可以是函数的形式(函数返回一个对象)也可以是对象的形式，故做如下处理
 
     data = vm._data = typeof data === 'function' ? data.call(vm) : data; // 对象劫持  用户改变了数据 期望可以得到通知 => 刷新页面
     // MVVM模式 数据变化可以驱动视图变化
     // Object.defineProperty(): 给属性增加get方法和set方法
     // 为了让用户更好的使用 可以直接vm.xxx
 
-    for (let key in data) {
+    for (var key in data) {
       proxy(vm, '_data', key);
     }
 
@@ -241,40 +451,39 @@
 
   // ?:匹配不捕获
   // arguments[0] = 匹配到的标签  arguments[1] 匹配到的标签名字
-  const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z]*`; // abc-aaa
+  var ncname = "[a-zA-Z_][\\-\\.0-9_a-zA-Z]*"; // abc-aaa
 
-  const qnameCapture = `((?:${ncname}\\:)?${ncname})`;
-  const startTagOpen = new RegExp(`^<${qnameCapture}`); // 标签开头的正则 匹配的内容是标签名
+  var qnameCapture = "((?:".concat(ncname, "\\:)?").concat(ncname, ")");
+  var startTagOpen = new RegExp("^<".concat(qnameCapture)); // 标签开头的正则 匹配的内容是标签名
 
-  const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`); // 匹配标签结尾的</div>
+  var endTag = new RegExp("^<\\/".concat(qnameCapture, "[^>]*>")); // 匹配标签结尾的</div>
 
-  const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/; // 匹配属性的
+  var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/; // 匹配属性的
 
-  const startTagClose = /^\s*(\/?)>/; // 匹配标签结束的 > <div>
+  var startTagClose = /^\s*(\/?)>/; // 匹配标签结束的 > <div>
 
   function parseHTML(html) {
-    let root = null; // ast语法树的树根
+    var root = null; // ast语法树的树根
 
-    let currentParent; // 标识当前父亲是谁
+    var currentParent; // 标识当前父亲是谁
 
-    let stack = [];
-    const ELEMENT_TYPE = 1;
-    const TEXT_TYPE = 3;
+    var stack = [];
+    var ELEMENT_TYPE = 1;
+    var TEXT_TYPE = 3;
 
     function createASTElement(tagName, attrs) {
       return {
         tag: tagName,
         type: ELEMENT_TYPE,
         children: [],
-        attrs,
+        attrs: attrs,
         parent: null
       };
-    } // 开始标签
-
+    }
 
     function start(tagName, attrs) {
       // 遇到开始标签 就创建一个ast元素
-      let element = createASTElement(tagName, attrs);
+      var element = createASTElement(tagName, attrs);
 
       if (!root) {
         root = element;
@@ -284,24 +493,21 @@
       currentParent = element; // 将开始标签存放到栈中
 
       stack.push(element);
-    } // 文本
-
+    }
 
     function chars(text) {
-      // 去掉空格
       text = text.replace(/\s/g, '');
 
       if (text) {
         currentParent.children.push({
-          text,
+          text: text,
           type: TEXT_TYPE
         });
       }
-    } // 结束标签
-
+    }
 
     function end(tagName) {
-      let element = stack.pop(); // 拿到的是ast对象
+      var element = stack.pop(); // 拿到的是ast对象
       // 标识当前这个标签属于这个div的儿子
 
       currentParent = stack[stack.length - 1];
@@ -314,11 +520,11 @@
 
 
     while (html) {
-      let textEnd = html.indexOf('<');
+      var textEnd = html.indexOf('<');
 
       if (textEnd == 0) {
-        // 如果当前索引为0 肯定是一个标签 开始标签或者结束标签
-        let startTagMatch = parseStartTag(); // 通过这个方法获取到匹配的结果 tagName,attrs
+        // 如果当前索引为0 肯定是一个标签或者结束标签
+        var startTagMatch = parseStartTag(); // 通过这个方法获取到匹配的结果 tagName,attrs
 
         if (startTagMatch) {
           start(startTagMatch.tagName, startTagMatch.attrs); // 1. 解析开始标签
@@ -326,7 +532,7 @@
           continue; // 如果开始标签匹配完毕后，继续下一次匹配
         }
 
-        let endTagMatch = html.match(endTag);
+        var endTagMatch = html.match(endTag);
 
         if (endTagMatch) {
           advance(endTagMatch[0].length);
@@ -336,7 +542,7 @@
         }
       }
 
-      let text;
+      var text = void 0;
 
       if (textEnd >= 0) {
         text = html.substring(0, textEnd);
@@ -344,7 +550,7 @@
 
       if (text) {
         advance(text.length);
-        chars(text); // 3.解析文本
+        chars(text); // 3.解析文本 
       }
     } // 前进 n
 
@@ -354,31 +560,31 @@
     }
 
     function parseStartTag() {
-      let start = html.match(startTagOpen);
+      var start = html.match(startTagOpen);
 
       if (start) {
-        const match = {
+        var match = {
           tagName: start[1],
           attrs: []
         }; // 将标签删除
 
         advance(start[0].length);
-        let end, attr;
 
-        while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+        var _end, attr;
+
+        while (!(_end = html.match(startTagClose)) && (attr = html.match(attribute))) {
           // 解析属性
           advance(attr[0].length); // 将属性去掉
 
           match.attrs.push({
             name: attr[1],
-            // attr[3] 双引号属性值；attr[4] 单引号属性值；attr[5] 无引号属性值
             value: attr[3] || attr[4] || attr[5]
           });
         } // 去掉开始标签的 >
 
 
-        if (end) {
-          advance(end[0].length);
+        if (_end) {
+          advance(_end[0].length);
           return match;
         }
       }
@@ -387,111 +593,108 @@
     return root;
   }
 
-  const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g; // 匹配 {{}}
-  // children 中的内容解析
+  var defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g; // 匹配 {{}}
 
   function gen(node) {
     if (node.type == 1) {
-      // 元素标签 递归解析
+      // 元素标签
       return generate(node);
     } else {
-      // children 为文本
-      let text = node.text; // hello{{ name }} => "hello"+_s(name)
-      // 每次使用正则时将 lastIndex 归零
-
-      let lastIndex = defaultTagRE.lastIndex = 0;
-      let tokens = [];
-      let match,
-          index = 0; // 解析文本
+      var text = node.text;
+      var lastIndex = defaultTagRE.lastIndex = 0;
+      var tokens = [];
+      var match,
+          index = 0;
 
       while (match = defaultTagRE.exec(text)) {
-        index = match.index; // 例：解析 hello{{ name }}hello 中的 {{ name }} 前面的 hello
+        index = match.index;
 
         if (index > lastIndex) {
           tokens.push(JSON.stringify(text.slice(lastIndex, index)));
-        } // 例：解析 hello{{ name }}hello 中的 {{ name }}
+        }
 
-
-        tokens.push(`_s(${match[1].trim()})`);
+        tokens.push("_s(".concat(match[1].trim(), ")"));
         lastIndex = index + match[0].length;
-      } // 例：解析 hello{{ name }} hello 中的 {{ name }} 后面的 hello
-
+      }
 
       if (lastIndex < text.length) {
         tokens.push(JSON.stringify(text.slice(lastIndex)));
-      } // 将结果拼接上 +
+      }
 
-
-      return `_v(${tokens.join('+')})`;
+      return "_v(".concat(tokens.join('+'), ")");
     }
   } // 处理属性  拼接成属性的字符串
 
 
   function genProps(attrs) {
-    let str = '';
+    var str = '';
 
-    for (let i = 0; i < attrs.length; i++) {
-      let attr = attrs[i]; // 解析 style
+    for (var i = 0; i < attrs.length; i++) {
+      var attr = attrs[i];
 
       if (attr.name === "style") {
-        // style="color: red;" => {style: {color:'red'}}
-        let obj = {};
-        attr.value.split(';').forEach(item => {
-          let [key, value] = item.split(':');
-          obj[key] = value;
-        });
-        attr.value = obj;
-      } // 拼接上 ,
+        (function () {
+          // style="color: red;" => {style: {color:'red}}
+          var obj = {};
+          attr.value.split(';').forEach(function (item) {
+            var _item$split = item.split(':'),
+                _item$split2 = _slicedToArray(_item$split, 2),
+                key = _item$split2[0],
+                value = _item$split2[1];
 
+            obj[key] = value;
+          });
+          attr.value = obj;
+        })();
+      }
 
-      str += `${attr.name}:${JSON.stringify(attr.value)},`;
+      str += "".concat(attr.name, ":").concat(JSON.stringify(attr.value), ",");
     } // 去掉最后一个 ,
 
 
-    return `{${str.slice(0, -1)}}`;
+    return "{".concat(str.slice(0, -1), "}");
   }
 
   function genChildren(el) {
-    let children = el.children;
+    var children = el.children;
 
     if (children && children.length > 0) {
-      return `${children.map(c => gen(c)).join(',')}`;
+      return "".concat(children.map(function (c) {
+        return gen(c);
+      }).join(','));
     } else {
       return false;
     }
-  } // 递归创建
-
+  }
 
   function generate(el) {
-    // 获取子节点
-    let children = genChildren(el);
-    let code = `_c("${el.tag}",${el.attrs.length ? genProps(el.attrs) : 'undefined'}${children ? `,${children}` : ''})`;
+    var children = genChildren(el);
+    var code = "_c(\"".concat(el.tag, "\",").concat(el.attrs.length ? genProps(el.attrs) : 'undefined').concat(children ? ",".concat(children) : '', ")");
     return code;
   }
 
   function compilerToFunction(template) {
     // 1) 解析html字符串 将html字符串 -> ast语法树
-    console.log(template);
-    let root = parseHTML(template); // 需要将ast语法树生成最终的render函数，就是字符串拼接(模板引擎)
+    var root = parseHTML(template); // 需要将ast语法树生成最终的render函数，就是字符串拼接(模板引擎)
 
-    let code = generate(root);
-    console.log('code', code); // 核心思路就是模板转化成 下面这段字符串
+    var code = generate(root); // 核心思路就是模板转化成 下面这段字符串
     // <div id="app"><p>hello {{name}}</p> hello</div>
-    // _c('div', {id:app}, _c('p', undefined, _v('hello'+_s(name))), _v('hello))
     // 将ast树，再次转换成js的语法
     // 所有的模板引擎实现，都需要new Function + with
 
-    let renderFn = new Function(`with(this){return ${code}}`);
-    console.log(renderFn); // vue的render 返回的是虚拟dom
+    var renderFn = new Function("with(this){return ".concat(code, "}")); // _c('div', {id:app}, _c('p', undefined, _v('hello'+_s(name))), _v('hello))
+    // vue的render 返回的是虚拟dom
 
     return renderFn;
   }
 
-  let callbacks = [];
-  let waiting = false;
+  var callbacks = [];
+  var waiting = false;
 
   function flushCallback() {
-    callbacks.forEach(cb => cb());
+    callbacks.forEach(function (cb) {
+      return cb();
+    });
     waiting = false;
     callbacks = [];
   }
@@ -506,18 +709,20 @@
     }
   }
 
-  let queue = [];
-  let has = {};
+  var queue = [];
+  var has = {};
 
   function flushSchedularQueue() {
-    queue.forEach(watcher => watcher.run());
+    queue.forEach(function (watcher) {
+      return watcher.run();
+    });
     queue = []; // 让下次可以继续使用 
 
     has = {};
   }
 
   function queueWatcher(watcher) {
-    const id = watcher.id;
+    var id = watcher.id;
 
     if (has[id] == null) {
       queue.push(watcher);
@@ -528,10 +733,12 @@
     }
   }
 
-  let id$1 = 0;
+  var id$1 = 0;
 
-  class Wathcer {
-    constructor(vm, exprOrFn, callback, options) {
+  var Watcher = /*#__PURE__*/function () {
+    function Watcher(vm, exprOrFn, callback, options) {
+      _classCallCheck(this, Watcher);
+
       this.vm = vm;
       this.callback = callback;
       this.options = options;
@@ -545,51 +752,55 @@
     } // watcher 里不能放重复的dep dep里不能放重复的watcher
 
 
-    addDep(dep) {
-      let id = dep.id;
+    _createClass(Watcher, [{
+      key: "addDep",
+      value: function addDep(dep) {
+        var id = dep.id;
 
-      if (!this.depsId.has(id)) {
-        this.depsId.add(id);
-        this.deps.push(dep);
-        dep.addSub(this);
+        if (!this.depsId.has(id)) {
+          this.depsId.add(id);
+          this.deps.push(id);
+          dep.addSub(this);
+        }
       }
-    }
+    }, {
+      key: "get",
+      value: function get() {
+        pushTarget(this); // 把watcher存起来 Dep.target
 
-    get() {
-      pushTarget(this); // 把watcher存起来
+        this.getter(); // 渲染watcher执行 render
 
-      this.getter(); // 渲染watcher执行
+        popTarget(); // 移除watcher
+      }
+    }, {
+      key: "update",
+      value: function update() {
+        // 等待着 一起更新 因为每次调用update的时候 都放入了watcher
+        // this.get()
+        queueWatcher(this);
+      }
+    }, {
+      key: "run",
+      value: function run() {
+        this.get();
+      }
+    }]);
 
-      popTarget(); // 移除watcher
-    }
-
-    update() {
-      // 等待着 一起更新 因为每次调用update的时候 都放入了watcher
-      // this.get()
-      // ----- 添加代码
-      queueWatcher(this); // -----
-    } // ----- 添加代码
-
-
-    run() {
-      this.get();
-    } // -----
-
-
-  } // ----- 添加代码
+    return Watcher;
+  }();
 
   function patch(oldVnode, vnode) {
     // 判断是更新还是要渲染
-    const isRealElement = oldVnode.nodeType;
+    var isRealElement = oldVnode.nodeType;
 
     if (isRealElement) {
       // 第一次渲染，oldVnode是真实dom
-      const oldElm = oldVnode; // div id = "app"
+      var oldElm = oldVnode; // div id = "app"
 
-      const parentElm = oldElm.parentNode; // body
+      var parentElm = oldElm.parentNode; // body
       // 递归创建真实节点  替换掉老的节点
 
-      let el = createElm(vnode); // 添加新的dom
+      var el = createElm(vnode); // 添加新的dom
 
       parentElm.insertBefore(el, oldElm.nextSibling); // 删除旧的dom
 
@@ -600,20 +811,18 @@
   } // 根据虚拟节点创建真实的节点
 
   function createElm(vnode) {
-    let {
-      tag,
-      children,
-      key,
-      data,
-      text
-    } = vnode; // 是标签就创建标签
+    var tag = vnode.tag,
+        children = vnode.children,
+        key = vnode.key,
+        data = vnode.data,
+        text = vnode.text; // 是标签就创建标签
 
     if (typeof tag === 'string') {
       vnode.el = document.createElement(tag); // 更新属性
 
       updateProperties(vnode); // 递归创建子节点，将子节点添加到父节点上
 
-      children.forEach(child => {
+      children.forEach(function (child) {
         return vnode.el.appendChild(createElm(child));
       });
     } else {
@@ -627,16 +836,16 @@
 
 
   function updateProperties(vnode) {
-    let newProps = vnode.data || {};
-    let el = vnode.el;
+    var newProps = vnode.data || {};
+    var el = vnode.el;
 
-    for (let key in newProps) {
+    for (var key in newProps) {
       if (key === 'style') {
-        for (let styleName in newProps.style) {
+        for (var styleName in newProps.style) {
           el.style[styleName] = newProps.style[styleName];
         }
       } else if (key === 'class') {
-        el.className = newProps.class;
+        el.className = newProps["class"];
       } else {
         el.setAttribute(key, newProps[key]);
       }
@@ -645,64 +854,83 @@
 
   function lifecycleMixin(Vue) {
     Vue.prototype._update = function (vnode) {
-      const vm = this; // 通过虚拟节点，渲染出真实的dom
+      var vm = this; // 通过虚拟节点，渲染出真实的dom
 
       vm.$el = patch(vm.$el, vnode); // 需要用虚拟节点创建真实节点 替换 真实的$el
     };
   }
   function mountComponent(vm, el) {
-    const options = vm.$options;
+    var options = vm.$options;
     vm.$el = el; // 真实的dom元素
-    // 渲染页面
+    // Watcger 用于渲染
+    // vm._render 通过解析render方法 渲染出虚拟dom _c _v _s
+    // vm._update 通过虚拟dom 创建真实的dom
+    // 调用 boforeMount
 
-    let updateComponent = () => {
+    callHook(vm, 'beforeMount'); // 渲染页面
+
+    var updateComponent = function updateComponent() {
       // 无论是渲染还是更新都会调用此方法
       // 返回的是虚拟dom
-      console.log("watcher");
-
+      // 由Watcher监听render生成vnode，并由update生成真实dom并挂载
       vm._update(vm._render());
     }; // 渲染watcher 每个组件都有一个watcher vm.$watch(()=>{})
 
 
-    new Wathcer(vm, updateComponent, () => {}, true); // true 表示他是一个渲染watcher
+    new Watcher(vm, updateComponent, function () {}, true); // true 表示他是一个渲染watcher
+    // 调用 mounted
+
+    callHook(vm, 'mounted');
+  }
+  function callHook(vm, hook) {
+    var handlers = vm.$options[hook]; // 找到对应的钩子一次执行
+
+    if (handlers) {
+      for (var i = 0; i < handlers.length; i++) {
+        handlers[i].call(vm);
+      }
+    }
   }
 
   function initMixin(Vue) {
-    // 初始化流程
     Vue.prototype._init = function (options) {
       // 数据劫持
-      const vm = this; // vue中使用 this.$options 指代的就是用户传递的属性
+      var vm = this; // Vue中使用this.$options 指代的就是用户传递的属性
+      // 将用户传递的 和 全局的进行合并
 
-      vm.$options = options; // 初始化状体
+      vm.$options = mergeOptions(vm.constructor.options, options); // 调用 beforeCreate
 
-      initState(vm); // ---------添加部分
+      callHook(vm, 'beforeCreate'); // 初始化状态
+
+      initState(vm); // 分割代码
+      // 调用 created
+
+      callHook(vm, 'created'); // 如果用户传入了el属性 需要将页面渲染出来
+      // 如果用户传入了el 就要实现挂载流程
 
       if (vm.$options.el) {
         vm.$mount(vm.$options.el);
-      } // ---------
-
+      }
     };
 
     Vue.prototype.$mount = function (el) {
-      const vm = this;
-      const options = vm.$options;
-      el = document.querySelector(el); // 默认先查找有没有render方法，没有render再采用template，template也没有再使用 el 中的内容
+      var vm = this;
+      var options = vm.$options;
+      el = document.querySelector(el); // 默认先查找有没有render方法，没有render再采用template，template也没有就使用el中的内容
 
       if (!options.render) {
         // 对模板进行编译
-        let template = options.template; // 取出模板
+        var template = options.template; // 取出模板
 
         if (!template && el) {
           template = el.outerHTML;
         } // 编译
 
 
-        const render = compilerToFunction(template);
-        console.log('render', render);
+        var render = compilerToFunction(template);
         options.render = render; // 我们需要将template 转化成render方法vue1.0 2.0 虚拟dom
-
-        console.log('options', options);
-      } // 渲染当前的组件，挂载这个组件
+      } // options.render
+      // 渲染当前的组件 挂载这个组件
 
 
       mountComponent(vm, el);
@@ -712,28 +940,31 @@
     Vue.prototype.$nextTick = nextTick;
   }
 
-  function createElement(tag, data = {}, ...children) {
-    let key = data.key;
+  function createElement(tag) {
+    var data = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var key = data.key;
 
     if (key) {
       delete data.key;
-    } // 返回标签节点
+    }
 
+    for (var _len = arguments.length, children = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+      children[_key - 2] = arguments[_key];
+    }
 
     return vnode(tag, data, key, children, undefined);
   }
   function createTextNode(text) {
-    // 文本节点只需要返回 text 文本
     return vnode(undefined, undefined, undefined, undefined, text);
   }
 
   function vnode(tag, data, key, children, text) {
     return {
-      tag,
-      data,
-      key,
-      children,
-      text
+      tag: tag,
+      data: data,
+      key: key,
+      children: children,
+      text: text
     };
   } // 虚拟节点  就是通过 _c _v 实现用对象来描述dom的操作(对象)
   // 1) 将template转换成ast语法树 => 生成render方法 => 生成虚拟dom => 真实的dom
@@ -744,7 +975,7 @@
     // _v 创建文本的虚拟节点
     // _s JSON.stringify
     Vue.prototype._c = function () {
-      return createElement(...arguments); // tag, data, children1, children2
+      return createElement.apply(void 0, arguments); // tag, data, children1, children2
     };
 
     Vue.prototype._v = function (text) {
@@ -752,20 +983,77 @@
     };
 
     Vue.prototype._s = function (val) {
-      return val == null ? '' : typeof val === 'object' ? JSON.stringify(val) : val;
-    }; // ----- 添加代码
-
+      return val == null ? '' : _typeof(val) === 'object' ? JSON.stringify(val) : val;
+    };
 
     Vue.prototype._render = function () {
-      const vm = this;
-      const {
-        render
-      } = vm.$options; // 去实例上取值
+      var vm = this;
+      var render = vm.$options.render; // 去实例上取值
 
-      let vnode = render.call(vm);
+      var vnode = render.call(vm);
       return vnode;
-    }; // -----
+    };
+  }
 
+  function initMixin$1(Vue) {
+    Vue.mixin = function (mixin) {
+      // 对象合并
+      this.options = mergeOptions(this.options, mixin);
+    };
+  }
+
+  var ASSETS_TYPE = ["component", "directive", "filter"];
+
+  function initAssetRegisters(Vue) {
+    ASSETS_TYPE.forEach(function (type) {
+      Vue[type] = function (id, definition) {
+        if (type === 'component') {
+          // 注册全局组件
+          // 使用extend方法 将对象编程构造函数
+          // 子组件可能也有这个 VueComponent.component方法
+          definition = this.options._base.extend(definition);
+        }
+
+        this.options[type + 's'][id] = definition;
+      };
+    });
+  }
+
+  function initExtend(Vue) {
+    // 为什么要有子类和父类 new Vue (Vue 的构造函数)
+    // 创建子类 继承于父类 扩展的时候都扩展到自己的属性上
+    Vue.extend = function (extendOptions) {
+      console.log(extendOptions);
+    };
+  }
+
+  function initGlobalAPI(Vue) {
+    // 整合了所有的全局相关的内容
+    Vue.options = {};
+    initMixin$1(Vue); // 初始化的全局过滤器 指令 组件
+
+    ASSETS_TYPE.forEach(function (type) {
+      Vue.options[type + "s"] = {};
+    });
+    Vue.options._base = Vue; // _base 是Vue的构造函数
+    // 注册extend方法
+
+    initExtend(Vue);
+    initAssetRegisters(Vue); // Vue.mixin = function (mixin) {
+    //   // 对象合并
+    //   this.options = mergeOptions(this.options, mixin)
+    // }
+    // 生命周期的合并策略 [beforeCreate, beforeCreate]
+    // Vue.mixin({
+    //   beforeCreate() {
+    //     console.log('1')
+    //   }
+    // })
+    // Vue.mixin({
+    //   beforeCreate() {
+    //     console.log('2')
+    //   }
+    // })
   }
 
   function Vue(options) {
@@ -776,7 +1064,9 @@
 
   initMixin(Vue);
   renderMixin(Vue);
-  lifecycleMixin(Vue);
+  lifecycleMixin(Vue); // 初始化全局api
+
+  initGlobalAPI(Vue);
 
   return Vue;
 
