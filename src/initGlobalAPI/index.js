@@ -1,4 +1,4 @@
-import { mergeOptions } from '../util/index'
+// import { mergeOptions } from '../util/index'
 import initMixin from './mixin';
 import initAssetRegisters from './assets';
 import initExtend from './extend';
@@ -20,7 +20,9 @@ export function initGlobalAPI(Vue) {
   // 注册extend方法
   initExtend(Vue);
   
+  // console.log('---------', Vue.extend);
   initAssetRegisters(Vue);
+  // console.log(Vue.options);
 
   // Vue.mixin = function (mixin) {
   //   // 对象合并

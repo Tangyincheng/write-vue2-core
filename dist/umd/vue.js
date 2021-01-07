@@ -150,6 +150,15 @@
   var isObject = function isObject(val) {
     return _typeof(val) === "object" && val !== null;
   };
+  var isReservedTag = function isReservedTag(tagName) {
+    var str = 'p,div,span,input,button'; // ...
+
+    var obj = {};
+    str.split(',').forEach(function (tag) {
+      obj[tag] = true;
+    });
+    return obj[tagName];
+  };
   function def(data, key, value) {
     Object.defineProperty(data, key, {
       enumerable: false,
@@ -177,6 +186,20 @@
   LIFECYCLE_HOOKS.forEach(function (hook) {
     strats[hook] = mergeHook;
   });
+
+  function mergeAssets(parentVal, childVal) {
+    var res = Object.create(parentVal); // res.__proto__ = parentVal
+
+    if (childVal) {
+      for (var key in childVal) {
+        res[key] = childVal[key];
+      }
+    }
+
+    return res;
+  }
+
+  strats.components = mergeAssets;
   function mergeOptions(parent, child) {
     var options = {}; // 将 parent 上的属性与 child 进行合并
 
@@ -791,6 +814,12 @@
 
   function patch(oldVnode, vnode) {
     // 判断是更新还是要渲染
+    if (!oldVnode) {
+      // 这里是组件的挂载  vm.$mount()
+      // 通过当前的虚拟节点 创建元素并返回
+      return createElm(vnode);
+    }
+
     var isRealElement = oldVnode.nodeType;
 
     if (isRealElement) {
@@ -807,8 +836,69 @@
       parentElm.removeChild(oldElm); // 需要将渲染好的结果返回
 
       return el;
+    } else {
+      // 1.对比两个虚拟节点 操作真实的dom
+      if (oldVnode.tag !== vnode.tag) {
+        // 标签不一致，直接替换
+        oldVnode.el.parentNode.replaceChild(createElm(vnode), oldVnode.el);
+      } // 2.如果是文本
+
+
+      if (!oldVnode.tag) {
+        // 文本替换
+        if (oldVnode.text !== vnode.text) {
+          oldVnode.el.textContent = vnode.text;
+        }
+      } // 3.说明标签一致而且不是文本 (比对属性是否一致)
+
+
+      var _el = vnode.el = oldVnode.el;
+
+      updateProperties(vnode, oldVnode.data); // 计较子节点
+
+      var oldChildren = oldVnode.children || [];
+      var newChildren = vnode.children || []; // 新老节点都有子节点，需要比对子节点
+
+      if (oldChildren.length > 0 && newChildren.length > 0) {
+        updateChildren(_el, oldChildren, newChildren);
+      } else if (newChildren.length > 0) {
+        // 新节点有子节点，老节点没有子节点，直接将新的子节点转化成真实节点，插入即可。
+        for (var i = 0; i < newChildren.length; i++) {
+          var child = newChildren[i];
+
+          _el.appendChild(createElm(child));
+        }
+      } else if (oldChildren.length > 0) {
+        // 老节点有子节点，新节点没有子节点
+        _el.innerHTML = '';
+      }
+    }
+  }
+
+  function updateChildren(parent, oldChildren, newChildren) {
+    var oldStartVnode = oldChildren[0];
+    var oldEndIndex = oldChildren.length - 1;
+    var oldEndVnode = oldChildren[oldEndIndex];
+    var newStartVnode = newChildren[0];
+    var newEndIndex = newChildren.length - 1;
+    var newEndVnode = newChildren[newEndIndex];
+  } // 初始化的作用
+
+
+  function createComponent(vnode) {
+    // 需要创建组件的实例
+    var i = vnode.data;
+
+    if ((i = i.hook) && (i = i.init)) {
+      i(vnode);
+    } // 执行完毕后
+
+
+    if (vnode.componentInstance) {
+      return true;
     }
   } // 根据虚拟节点创建真实的节点
+
 
   function createElm(vnode) {
     var tag = vnode.tag,
@@ -818,6 +908,14 @@
         text = vnode.text; // 是标签就创建标签
 
     if (typeof tag === 'string') {
+      // 不是tag是字符串的就是普通的html  还有可能是组件
+      // 实例化组件
+      if (createComponent(vnode)) {
+        // 表示是组件
+        // 这里应该返回的是真实的dom元素
+        return vnode.componentInstance.$el;
+      }
+
       vnode.el = document.createElement(tag); // 更新属性
 
       updateProperties(vnode); // 递归创建子节点，将子节点添加到父节点上
@@ -834,20 +932,37 @@
     return vnode.el;
   } // 更新属性
 
-
   function updateProperties(vnode) {
+    var oldProps = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     var newProps = vnode.data || {};
-    var el = vnode.el;
+    var el = vnode.el; // 如果老的属性中有 新的属性中没有，在真实的dom上将这个属性删除掉
 
-    for (var key in newProps) {
-      if (key === 'style') {
+    var newStyle = newProps.style || {};
+    var oldStyle = oldProps.style || {};
+
+    for (var key in oldStyle) {
+      if (!newStyle[key]) {
+        el.style[key] = ''; // 删除多余的
+      }
+    }
+
+    for (var _key in oldProps) {
+      if (!newProps[_key]) {
+        el.removeAttribute(_key);
+      }
+    }
+
+    for (var _key2 in newProps) {
+      // 以新的为准
+      if (_key2 === 'style') {
         for (var styleName in newProps.style) {
+          // 新增样式
           el.style[styleName] = newProps.style[styleName];
         }
-      } else if (key === 'class') {
+      } else if (_key2 === 'class') {
         el.className = newProps["class"];
       } else {
-        el.setAttribute(key, newProps[key]);
+        el.setAttribute(_key2, newProps[_key2]);
       }
     }
   }
@@ -940,31 +1055,63 @@
     Vue.prototype.$nextTick = nextTick;
   }
 
-  function createElement(tag) {
-    var data = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  function createElement(vm, tag) {
+    var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    // console.log('vmvmvmvm', vm)
+    // ast -> render -> 调用
     var key = data.key;
 
     if (key) {
       delete data.key;
+    } // 以前表示的是标签 现在是组件 名字 上下文
+
+
+    for (var _len = arguments.length, children = new Array(_len > 3 ? _len - 3 : 0), _key = 3; _key < _len; _key++) {
+      children[_key - 3] = arguments[_key];
     }
 
-    for (var _len = arguments.length, children = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-      children[_key - 2] = arguments[_key];
+    if (isReservedTag(tag)) {
+      return vnode(tag, data, key, children, undefined);
+    } else {
+      // 组件 找到组件的定义
+      var Ctor = vm.$options.components[tag];
+      return createComponent$1(vm, tag, data, key, children, Ctor);
     }
-
-    return vnode(tag, data, key, children, undefined);
   }
-  function createTextNode(text) {
+
+  function createComponent$1(vm, tag, data, key, children, Ctor) {
+    // console.log(vm.$options);
+    if (isObject(Ctor)) {
+      Ctor = vm.$options._base.extend(Ctor);
+    }
+
+    data.hook = {
+      init: function init(vnode) {
+        // 当前组件的实例，就是componentInstance
+        var child = vnode.componentInstance = new Ctor({
+          _isComponent: true
+        });
+        child.$mount();
+      }
+    };
+    return vnode("vue-component-".concat(Ctor.cid, "-").concat(tag), data, key, undefined, undefined, {
+      Ctor: Ctor,
+      children: children
+    });
+  }
+
+  function createTextNode(vm, text) {
     return vnode(undefined, undefined, undefined, undefined, text);
   }
 
-  function vnode(tag, data, key, children, text) {
+  function vnode(tag, data, key, children, text, componentOptions) {
     return {
       tag: tag,
       data: data,
       key: key,
       children: children,
-      text: text
+      text: text,
+      componentOptions: componentOptions
     };
   } // 虚拟节点  就是通过 _c _v 实现用对象来描述dom的操作(对象)
   // 1) 将template转换成ast语法树 => 生成render方法 => 生成虚拟dom => 真实的dom
@@ -975,11 +1122,12 @@
     // _v 创建文本的虚拟节点
     // _s JSON.stringify
     Vue.prototype._c = function () {
-      return createElement.apply(void 0, arguments); // tag, data, children1, children2
+      // console.log('this', this.$options);
+      return createElement.apply(void 0, [this].concat(Array.prototype.slice.call(arguments))); // tag, data, children1, children2
     };
 
     Vue.prototype._v = function (text) {
-      return createTextNode(text);
+      return createTextNode(this, text);
     };
 
     Vue.prototype._s = function (val) {
@@ -987,7 +1135,8 @@
     };
 
     Vue.prototype._render = function () {
-      var vm = this;
+      var vm = this; // console.log('this', this)
+
       var render = vm.$options.render; // 去实例上取值
 
       var vnode = render.call(vm);
@@ -1009,8 +1158,9 @@
       Vue[type] = function (id, definition) {
         if (type === 'component') {
           // 注册全局组件
-          // 使用extend方法 将对象编程构造函数
+          // 使用extend方法 将对象变成构造函数
           // 子组件可能也有这个 VueComponent.component方法
+          // console.log(this.options._base.extend)
           definition = this.options._base.extend(definition);
         }
 
@@ -1022,11 +1172,22 @@
   function initExtend(Vue) {
     // 为什么要有子类和父类 new Vue (Vue 的构造函数)
     // 创建子类 继承于父类 扩展的时候都扩展到自己的属性上
+    var cid = 0;
+
     Vue.extend = function (extendOptions) {
-      console.log(extendOptions);
+      var Sub = function VueComponent(options) {
+        this._init(options);
+      };
+
+      Sub.cid = cid++;
+      Sub.prototype = Object.create(this.prototype);
+      Sub.prototype.constructor = Sub;
+      Sub.options = mergeOptions(this.options, extendOptions);
+      return Sub;
     };
   }
 
+  // import { mergeOptions } from '../util/index'
   function initGlobalAPI(Vue) {
     // 整合了所有的全局相关的内容
     Vue.options = {};
@@ -1038,8 +1199,10 @@
     Vue.options._base = Vue; // _base 是Vue的构造函数
     // 注册extend方法
 
-    initExtend(Vue);
-    initAssetRegisters(Vue); // Vue.mixin = function (mixin) {
+    initExtend(Vue); // console.log('---------', Vue.extend);
+
+    initAssetRegisters(Vue); // console.log(Vue.options);
+    // Vue.mixin = function (mixin) {
     //   // 对象合并
     //   this.options = mergeOptions(this.options, mixin)
     // }
@@ -1067,6 +1230,26 @@
   lifecycleMixin(Vue); // 初始化全局api
 
   initGlobalAPI(Vue);
+  var vm1 = new Vue({
+    data: {
+      name: 'hello'
+    }
+  });
+  var render1 = compilerToFunction("<div id='app' a='1' style='background:red'>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"D\">D</div>\n</div>");
+  var vnode$1 = render1.call(vm1);
+  var el = createElm(vnode$1);
+  document.body.appendChild(el);
+  var vm2 = new Vue({
+    data: {
+      name: 'yctang',
+      age: 18
+    }
+  });
+  var render2 = compilerToFunction("<div id=\"aaa\" b=\"2\" style=\"color:blue\">\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"D\">D</div>\n  <div style=\"background:purple\" key=\"E\">E</div>\n</div>");
+  var newVnode = render2.call(vm2);
+  setTimeout(function () {
+    patch(vnode$1, newVnode); // 传入两个虚拟节点，会在内部进行比对
+  }, 3000); // 1. diff算法的特点是 平级比对，正常操作dom元素时，很少涉及到父变成子，子变成父
 
   return Vue;
 
