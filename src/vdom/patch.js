@@ -76,10 +76,28 @@ function updateChildren(parent, oldChildren, newChildren) {
   let newEndIndex = newChildren.length - 1;
   let newEndVnode = newChildren[newEndIndex];
 
+  const makeIndexByKey = (children) => {
+    let map = {};
+    children.forEach((item, index) => {
+      if (item.key) {
+        map[item.key] = index; // 根据key创建一个映射表
+      }
+    })
+    console.log(map);
+    return map;
+  }
+
+  let map = makeIndexByKey(oldChildren);
+
   // 在比对的过程中，新老虚拟节点有一方循环完毕就结束
   while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
     // 优化向后插入的情况
-    if (isSameVnode(oldStartVnode, newStartVnode)) {
+    if (!oldStartVnode) { // 如果老指针移动过程中可能会碰到undefined
+      oldStartVnode = oldChildren[++oldStartIndex];
+    }
+    else if (!oldEndVnode) {
+      oldEndVnode = oldChildren[--oldEndIndex];
+    } else if (isSameVnode(oldStartVnode, newStartVnode)) {
       // 如果是同一个节点，就需要比对这个元素的属性
       patch(oldStartVnode, newStartVnode); // 比对开头节点
       oldStartVnode = oldChildren[++oldStartIndex];
@@ -102,7 +120,20 @@ function updateChildren(parent, oldChildren, newChildren) {
       oldEndVnode = oldChildren[--oldEndIndex];
       newStartVnode = newChildren[++newStartIndex];
     } else {
-      // 暴力比对
+      // 暴力比对 乱序
+      // 先根据老节点的key 做一个映射表，拿新的虚拟节点去映射表中查找，则进行移动操作（移到头指针前面的位置）
+      // 如果找不到，则将元素插入即可
+      let moveIndex = map[newStartVnode.key];
+      if (!moveIndex) { // 不需要复用
+        parent.insertBefore(createElm(newStartVnode), oldStartVnode.el);
+      } else {
+        // 如果在映射表中查找到了，则直接将元素移走，并且将当前位置置为空
+        let moveVnode = oldChildren[moveIndex]; // 我要移动的那个元素
+        oldChildren[moveIndex] = undefined; // 占位防止塌陷
+        parent.insertBefore(moveVnode.el, oldStartVnode.el);
+        patch(moveVnode, newStartVnode);
+      }
+      newStartVnode = newChildren[++newStartIndex];
     }
   }
 
@@ -114,6 +145,14 @@ function updateChildren(parent, oldChildren, newChildren) {
 
       // 将新增的元素直接及逆行插入(可能是向后插入，也可能是向前插入)
       // parent.appendChild(createElm(newChildren[i]))
+    }
+  }
+  if (oldStartIndex <= oldEndIndex) {
+    for (let i = oldStartIndex; i <= oldEndIndex; i++) {
+      let chile = oldChildren[i];
+      if (chile != undefined) {
+        parent.removeChild(chile.el);
+      }
     }
   }
 }

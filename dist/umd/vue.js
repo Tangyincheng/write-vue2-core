@@ -889,11 +889,29 @@
     var newStartIndex = 0;
     var newStartVnode = newChildren[0];
     var newEndIndex = newChildren.length - 1;
-    var newEndVnode = newChildren[newEndIndex]; // 在比对的过程中，新老虚拟节点有一方循环完毕就结束
+    var newEndVnode = newChildren[newEndIndex];
+
+    var makeIndexByKey = function makeIndexByKey(children) {
+      var map = {};
+      children.forEach(function (item, index) {
+        if (item.key) {
+          map[item.key] = index; // 根据key创建一个映射表
+        }
+      });
+      console.log(map);
+      return map;
+    };
+
+    var map = makeIndexByKey(oldChildren); // 在比对的过程中，新老虚拟节点有一方循环完毕就结束
 
     while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
       // 优化向后插入的情况
-      if (isSameVnode(oldStartVnode, newStartVnode)) {
+      if (!oldStartVnode) {
+        // 如果老指针移动过程中可能会碰到undefined
+        oldStartVnode = oldChildren[++oldStartIndex];
+      } else if (!oldEndVnode) {
+        oldEndVnode = oldChildren[--oldEndIndex];
+      } else if (isSameVnode(oldStartVnode, newStartVnode)) {
         // 如果是同一个节点，就需要比对这个元素的属性
         patch(oldStartVnode, newStartVnode); // 比对开头节点
 
@@ -916,7 +934,27 @@
         parent.insertBefore(oldEndVnode.el, oldStartVnode.el);
         oldEndVnode = oldChildren[--oldEndIndex];
         newStartVnode = newChildren[++newStartIndex];
-      } else ;
+      } else {
+        // 暴力比对 乱序
+        // 先根据老节点的key 做一个映射表，拿新的虚拟节点去映射表中查找，则进行移动操作（移到头指针前面的位置）
+        // 如果找不到，则将元素插入即可
+        var moveIndex = map[newStartVnode.key];
+
+        if (!moveIndex) {
+          // 不需要复用
+          parent.insertBefore(createElm(newStartVnode), oldStartVnode.el);
+        } else {
+          // 如果在映射表中查找到了，则直接将元素移走，并且将当前位置置为空
+          var moveVnode = oldChildren[moveIndex]; // 我要移动的那个元素
+
+          oldChildren[moveIndex] = undefined; // 占位防止塌陷
+
+          parent.insertBefore(moveVnode.el, oldStartVnode.el);
+          patch(moveVnode, newStartVnode);
+        }
+
+        newStartVnode = newChildren[++newStartIndex];
+      }
     }
 
     if (newStartIndex <= newEndIndex) {
@@ -925,6 +963,16 @@
         parent.insertBefore(createElm(newChildren[i]), el); // 写null,就等价于appendChild
         // 将新增的元素直接及逆行插入(可能是向后插入，也可能是向前插入)
         // parent.appendChild(createElm(newChildren[i]))
+      }
+    }
+
+    if (oldStartIndex <= oldEndIndex) {
+      for (var _i = oldStartIndex; _i <= oldEndIndex; _i++) {
+        var chile = oldChildren[_i];
+
+        if (chile != undefined) {
+          parent.removeChild(chile.el);
+        }
       }
     }
   } // 初始化的作用
@@ -1280,7 +1328,7 @@
       name: 'hello'
     }
   });
-  var render1 = compilerToFunction("<div id='app' a='1' style='background:red'>\n\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"D\">D</div>\n</div>");
+  var render1 = compilerToFunction("<div id='app' a='1' style='background:red'>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n</div>");
   var vnode$1 = render1.call(vm1);
   var el = createElm(vnode$1);
   document.body.appendChild(el);
@@ -1290,7 +1338,7 @@
       age: 18
     }
   });
-  var render2 = compilerToFunction("<div id=\"aaa\" b=\"2\" style=\"color:blue\">\n  <div style=\"background:green\" key=\"D\">D</div>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n\n</div>");
+  var render2 = compilerToFunction("<div id=\"aaa\" b=\"2\" style=\"color:blue\">\n  <div style=\"background:green\" key=\"Q\">Q</div>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"F\">F</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"N\">N</div>\n</div>");
   var newVnode = render2.call(vm2);
   setTimeout(function () {
     patch(vnode$1, newVnode); // 传入两个虚拟节点，会在内部进行比对
