@@ -875,13 +875,58 @@
     }
   }
 
+  function isSameVnode(oldVnode, newVnode) {
+    return oldVnode.tag === newVnode.tag && oldVnode.key === newVnode.key;
+  }
+
   function updateChildren(parent, oldChildren, newChildren) {
+    // vue 采用的是双指针的方式
+    // vue 在内部比对的过程中做了很多优化策略
+    var oldStartIndex = 0;
     var oldStartVnode = oldChildren[0];
     var oldEndIndex = oldChildren.length - 1;
     var oldEndVnode = oldChildren[oldEndIndex];
+    var newStartIndex = 0;
     var newStartVnode = newChildren[0];
     var newEndIndex = newChildren.length - 1;
-    var newEndVnode = newChildren[newEndIndex];
+    var newEndVnode = newChildren[newEndIndex]; // 在比对的过程中，新老虚拟节点有一方循环完毕就结束
+
+    while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
+      // 优化向后插入的情况
+      if (isSameVnode(oldStartVnode, newStartVnode)) {
+        // 如果是同一个节点，就需要比对这个元素的属性
+        patch(oldStartVnode, newStartVnode); // 比对开头节点
+
+        oldStartVnode = oldChildren[++oldStartIndex];
+        newStartVnode = newChildren[++newStartIndex];
+      } else if (isSameVnode(oldEndVnode, newEndVnode)) {
+        // 优化向前插入的情况
+        patch(oldEndVnode, newEndVnode);
+        oldEndVnode = oldChildren[--oldEndIndex];
+        newEndVnode = newChildren[--newEndIndex];
+      } else if (isSameVnode(oldStartVnode, newEndVnode)) {
+        // 头移尾 (涉及到 倒叙变正序)
+        patch(oldStartVnode, newEndVnode);
+        parent.insertBefore(oldStartVnode.el, oldEndVnode.el.nextSibling);
+        oldStartVnode = oldChildren[++oldStartIndex];
+        newEndVnode = newChildren[--newEndIndex];
+      } else if (isSameVnode(oldEndVnode, newStartVnode)) {
+        // 尾移头
+        patch(oldEndVnode, newStartVnode);
+        parent.insertBefore(oldEndVnode.el, oldStartVnode.el);
+        oldEndVnode = oldChildren[--oldEndIndex];
+        newStartVnode = newChildren[++newStartIndex];
+      } else ;
+    }
+
+    if (newStartIndex <= newEndIndex) {
+      for (var i = newStartIndex; i <= newEndIndex; i++) {
+        var el = newChildren[newEndIndex + 1] == null ? null : newChildren[newEndIndex + 1].el;
+        parent.insertBefore(createElm(newChildren[i]), el); // 写null,就等价于appendChild
+        // 将新增的元素直接及逆行插入(可能是向后插入，也可能是向前插入)
+        // parent.appendChild(createElm(newChildren[i]))
+      }
+    }
   } // 初始化的作用
 
 
@@ -1235,7 +1280,7 @@
       name: 'hello'
     }
   });
-  var render1 = compilerToFunction("<div id='app' a='1' style='background:red'>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"D\">D</div>\n</div>");
+  var render1 = compilerToFunction("<div id='app' a='1' style='background:red'>\n\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"D\">D</div>\n</div>");
   var vnode$1 = render1.call(vm1);
   var el = createElm(vnode$1);
   document.body.appendChild(el);
@@ -1245,7 +1290,7 @@
       age: 18
     }
   });
-  var render2 = compilerToFunction("<div id=\"aaa\" b=\"2\" style=\"color:blue\">\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"D\">D</div>\n  <div style=\"background:purple\" key=\"E\">E</div>\n</div>");
+  var render2 = compilerToFunction("<div id=\"aaa\" b=\"2\" style=\"color:blue\">\n  <div style=\"background:green\" key=\"D\">D</div>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n\n</div>");
   var newVnode = render2.call(vm2);
   setTimeout(function () {
     patch(vnode$1, newVnode); // 传入两个虚拟节点，会在内部进行比对

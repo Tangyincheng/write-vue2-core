@@ -57,6 +57,10 @@ export function patch(oldVnode, vnode) {
 
 }
 
+function isSameVnode(oldVnode, newVnode) {
+  return (oldVnode.tag === newVnode.tag) && (oldVnode.key === newVnode.key)
+}
+
 function updateChildren(parent, oldChildren, newChildren) {
   // vue 采用的是双指针的方式
 
@@ -71,6 +75,47 @@ function updateChildren(parent, oldChildren, newChildren) {
   let newStartVnode = newChildren[0];
   let newEndIndex = newChildren.length - 1;
   let newEndVnode = newChildren[newEndIndex];
+
+  // 在比对的过程中，新老虚拟节点有一方循环完毕就结束
+  while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
+    // 优化向后插入的情况
+    if (isSameVnode(oldStartVnode, newStartVnode)) {
+      // 如果是同一个节点，就需要比对这个元素的属性
+      patch(oldStartVnode, newStartVnode); // 比对开头节点
+      oldStartVnode = oldChildren[++oldStartIndex];
+      newStartVnode = newChildren[++newStartIndex];
+    } else if (isSameVnode(oldEndVnode, newEndVnode)) {
+      // 优化向前插入的情况
+      patch(oldEndVnode, newEndVnode);
+      oldEndVnode = oldChildren[--oldEndIndex];
+      newEndVnode = newChildren[--newEndIndex];
+    } else if (isSameVnode(oldStartVnode, newEndVnode)) {
+      // 头移尾 (涉及到 倒叙变正序)
+      patch(oldStartVnode, newEndVnode);
+      parent.insertBefore(oldStartVnode.el, oldEndVnode.el.nextSibling);
+      oldStartVnode = oldChildren[++oldStartIndex];
+      newEndVnode = newChildren[--newEndIndex];
+    } else if (isSameVnode(oldEndVnode, newStartVnode)) {
+      // 尾移头
+      patch(oldEndVnode, newStartVnode);
+      parent.insertBefore(oldEndVnode.el, oldStartVnode.el);
+      oldEndVnode = oldChildren[--oldEndIndex];
+      newStartVnode = newChildren[++newStartIndex];
+    } else {
+      // 暴力比对
+    }
+  }
+
+  if (newStartIndex <= newEndIndex) {
+    for (let i = newStartIndex; i <= newEndIndex; i++) {
+
+      let el = newChildren[newEndIndex + 1] == null ? null : newChildren[newEndIndex + 1].el
+      parent.insertBefore(createElm(newChildren[i]), el); // 写null,就等价于appendChild
+
+      // 将新增的元素直接及逆行插入(可能是向后插入，也可能是向前插入)
+      // parent.appendChild(createElm(newChildren[i]))
+    }
+  }
 }
 
 // 初始化的作用
