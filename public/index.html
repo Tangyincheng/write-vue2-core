@@ -8,9 +8,11 @@
 </head>
 
 <body>
-  <!-- <div id="app" style="color: blue;width: 300px;">
-    {{name}}
-  </div> -->
+  <div id="app" style="color: blue;width: 300px;">
+    hello
+    <span> {{name}}</span>
+
+  </div>
   <script src="/dist/umd/vue.js">  </script>
   <script>
     // 内部会调用 Vue.extend 返回一个组件的构造函数，通过 new 这个构造函数产生实例
@@ -18,23 +20,22 @@
     //   template: "<div>tyc</div>"
     // })
     // 更改组件的合并策略
-    // let vm = new Vue({
-    //   el: "#app",
-    //   data() {
-    //     return { name: '1', arr: [1, 2, 3] }
-    //   },
-    //   // components: {
-    //   //   'my-component': {
-    //   //     template: "<div>tycccc</div>"
-    //   //   }
-    //   // }
-    // })
+    let vm = new Vue({
+      el: "#app",
+      data() {
+        return { name: '1', arr: [1, 2, 3] }
+      },
+      // components: {
+      //   'my-component': {
+      //     template: "<div>tycccc</div>"
+      //   }
+      // }
+    })
     // console.log(Vue.options);
     // console.log(vm);
-    // setTimeout(() => {
-    //   vm.arr.push(4)
-    //   vm.arr.push(7)
-    // }, 2000)
+    setTimeout(() => {
+      vm.name = 'yctang'
+    }, 2000)
     // console.log(vm.$options)
     // vm.$nextTick(() => {
     //   console.log(vm.$el.innerHTML)

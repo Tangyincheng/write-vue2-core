@@ -147,6 +147,7 @@ function updateChildren(parent, oldChildren, newChildren) {
       // parent.appendChild(createElm(newChildren[i]))
     }
   }
+  // 删掉旧节点上多余的
   if (oldStartIndex <= oldEndIndex) {
     for (let i = oldStartIndex; i <= oldEndIndex; i++) {
       let chile = oldChildren[i];

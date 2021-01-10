@@ -964,7 +964,8 @@
         // 将新增的元素直接及逆行插入(可能是向后插入，也可能是向前插入)
         // parent.appendChild(createElm(newChildren[i]))
       }
-    }
+    } // 删掉旧节点上多余的
+
 
     if (oldStartIndex <= oldEndIndex) {
       for (var _i = oldStartIndex; _i <= oldEndIndex; _i++) {
@@ -1062,9 +1063,18 @@
 
   function lifecycleMixin(Vue) {
     Vue.prototype._update = function (vnode) {
-      var vm = this; // 通过虚拟节点，渲染出真实的dom
+      var vm = this; // 虚拟节点对应的内容
 
-      vm.$el = patch(vm.$el, vnode); // 需要用虚拟节点创建真实节点 替换 真实的$el
+      var prevVnode = vm._vnode; // 第一次默认 不需要diff算法
+
+      vm._vnode = vnode; // 真实渲染的内容
+      // 通过虚拟节点，渲染出真实的dom
+
+      if (!prevVnode) {
+        vm.$el = patch(vm.$el, vnode); // 需要用虚拟节点创建真实节点 替换 真实的$el
+      } else {
+        vm.$el = patch(prevVnode, vnode);
+      }
     };
   }
   function mountComponent(vm, el) {
