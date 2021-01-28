@@ -15,3 +15,5 @@
 [【系列文章】- 手写Vue2核心代码（六）生命周期合并策略](http://www.yctang.club/detailed?id=79)
 
 [【系列文章】- 手写Vue2核心代码（七）依赖收集](http://www.yctang.club/detailed?id=80)
+
+[【系列文章】- 手写Vue2核心代码（八）diff算法](http://www.yctang.club/detailed?id=82)
