@@ -1,53 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-</head>
+  <body>
+    <div id="app">{{allName}}</div>
+    <script src="/dist/umd/vue.js"></script>
+    <script>
+      // 内部会调用 Vue.extend 返回一个组件的构造函数，通过 new 这个构造函数产生实例
+      // Vue.component('my-component', {
+      //   template: "<div>tyc</div>"
+      // })
+      // 更改组件的合并策略
+      let vm = new Vue({
+        el: '#app',
+        data() {
+          return { name: '1', arr: [1, 2, 3] }
+        },
+        // components: {
+        //   'my-component': {
+        //     template: "<div>tycccc</div>"
+        //   }
+        // }
+        computed: {
+          //
+          allName() {
+            console.log('XXX')
+            return this.name + '-' + this.arr[1]
+          },
+        },
+      })
+      // vm.name = 'yctang'
+      setTimeout(() => {
+        vm.name = 'ppppp'
+        vm.allName
+      }, 1000)
 
-<body>
-  <div id="app" style="color: blue;width: 300px;">
-    hello
-    <span> {{name}}</span>
+      // vm.allName
+      // console.log(Vue.options);
+      // console.log(vm);
+      // setTimeout(() => {
+      //   vm.arr.push(4)
+      //   vm.arr.push(7)
+      // }, 2000)
+      // console.log(vm.$options)
+      // vm.$nextTick(() => {
+      //   console.log(vm.$el.innerHTML)
+      // })
 
-  </div>
-  <script src="/dist/umd/vue.js">  </script>
-  <script>
-    // 内部会调用 Vue.extend 返回一个组件的构造函数，通过 new 这个构造函数产生实例
-    // Vue.component('my-component', {
-    //   template: "<div>tyc</div>"
-    // })
-    // 更改组件的合并策略
-    let vm = new Vue({
-      el: "#app",
-      data() {
-        return { name: '1', arr: [1, 2, 3] }
-      },
-      // components: {
-      //   'my-component': {
-      //     template: "<div>tycccc</div>"
-      //   }
-      // }
-    })
-    // console.log(Vue.options);
-    // console.log(vm);
-    setTimeout(() => {
-      vm.name = 'yctang'
-    }, 2000)
-    // console.log(vm.$options)
-    // vm.$nextTick(() => {
-    //   console.log(vm.$el.innerHTML)
-    // })
-
-
-    // 组件渲染的时候，会调用当前组件对应的构造函数，产生一个实例
-    // 我们可以new这个类，每个组件调用都会new一下
-    // 每个组件在使用时都会Vue.extend方法，创建一个构造函数
-    // 实例化子组件时，会将当前选项和用户定义选项合并 mergeOptions
-    // 通过创建实例，内部会调用子类 _init()，内部会再创建一个渲染watcher，将渲染后的结果放到 vm.$el上 = 组件的渲染结果
-  </script>
-</body>
-
+      // 组件渲染的时候，会调用当前组件对应的构造函数，产生一个实例
+      // 我们可以new这个类，每个组件调用都会new一下
+      // 每个组件在使用时都会Vue.extend方法，创建一个构造函数
+      // 实例化子组件时，会将当前选项和用户定义选项合并 mergeOptions
+      // 通过创建实例，内部会调用子类 _init()，内部会再创建一个渲染watcher，将渲染后的结果放到 vm.$el上 = 组件的渲染结果
+    </script>
+  </body>
 </html>

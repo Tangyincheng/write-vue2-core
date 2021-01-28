@@ -147,6 +147,50 @@
     throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
+  var id = 0;
+
+  var Dep = /*#__PURE__*/function () {
+    function Dep() {
+      _classCallCheck(this, Dep);
+
+      this.id = id++;
+      this.subs = []; // age:[watcher, watcher]
+    }
+
+    _createClass(Dep, [{
+      key: "addSub",
+      value: function addSub(watcher) {
+        this.subs.push(watcher); // 观察者模式
+      }
+    }, {
+      key: "depend",
+      value: function depend() {
+        //让这个watcher记住当前的dep,如果watcher没存过dep，dep肯定不能存过watcher
+        Dep.target.addDep(this); // this.subs.push(Dep.target)  // 观察者模式
+      }
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          return watcher.update();
+        });
+      }
+    }]);
+
+    return Dep;
+  }();
+
+  var stack = []; // 目前可以做到 将watcher保留起来 和 移除的功能
+
+  function pushTarget(watcher) {
+    Dep.target = watcher;
+    stack.push(watcher);
+  }
+  function popTarget() {
+    stack.pop();
+    Dep.target = stack[stack.length - 1];
+  }
+
   var isObject = function isObject(val) {
     return _typeof(val) === "object" && val !== null;
   };
@@ -278,50 +322,6 @@
     };
   });
 
-  var id = 0;
-
-  var Dep = /*#__PURE__*/function () {
-    function Dep() {
-      _classCallCheck(this, Dep);
-
-      this.id = id++;
-      this.subs = []; // age:[watcher, watcher]
-    }
-
-    _createClass(Dep, [{
-      key: "addSub",
-      value: function addSub(watcher) {
-        this.subs.push(watcher); // 观察者模式
-      }
-    }, {
-      key: "depend",
-      value: function depend() {
-        //让这个watcher记住当前的dep,如果watcher没存过dep，dep肯定不能存过watcher
-        Dep.target.addDep(this); // this.subs.push(Dep.target)  // 观察者模式
-      }
-    }, {
-      key: "notify",
-      value: function notify() {
-        this.subs.forEach(function (watcher) {
-          return watcher.update();
-        });
-      }
-    }]);
-
-    return Dep;
-  }();
-
-  var stack = []; // 目前可以做到 将watcher保留起来 和 移除的功能
-
-  function pushTarget(watcher) {
-    Dep.target = watcher;
-    stack.push(watcher);
-  }
-  function popTarget() {
-    stack.pop();
-    Dep.target = stack[stack.length - 1];
-  }
-
   // Object.defineProperty 不能兼容ie8及以下 vue2 无法兼容ie8及以下版本
 
   var Observer = /*#__PURE__*/function () {
@@ -428,6 +428,159 @@
     return new Observer(data); // 用来观测数据
   }
 
+  var callbacks = [];
+  var waiting = false;
+
+  function flushCallback() {
+    callbacks.forEach(function (cb) {
+      return cb();
+    });
+    waiting = false;
+    callbacks = [];
+  }
+
+  function nextTick(cb) {
+    // 多次调用nextTick 如果没有刷新的时候，就先把他放到数组中，刷新后更改waiting
+    callbacks.push(cb);
+
+    if (waiting === false) {
+      setTimeout(flushCallback, 0);
+      waiting = true;
+    }
+  }
+
+  var queue = [];
+  var has = {};
+
+  function flushSchedularQueue() {
+    queue.forEach(function (watcher) {
+      return watcher.run();
+    });
+    queue = []; // 让下次可以继续使用 
+
+    has = {};
+  }
+
+  function queueWatcher(watcher) {
+    var id = watcher.id;
+
+    if (has[id] == null) {
+      queue.push(watcher);
+      has[id] = true; // 宏任务和微任务 (vue中使用了Vue.nextTick)
+      // Vuew.nextTick = promise / mutationObserver / setImmediate / setTimeout
+
+      nextTick(flushSchedularQueue);
+    }
+  }
+
+  var id$1 = 0;
+
+  var Watcher = /*#__PURE__*/function () {
+    function Watcher(vm, exprOrFn, callback, options) {
+      _classCallCheck(this, Watcher);
+
+      this.vm = vm;
+      this.callback = callback;
+      this.options = options;
+      this.sync = options.sync;
+      this.id = id$1++; // this.getter = exprOrFn; // 将内部传过来的回调函数 放到getter属性上
+
+      this.depsId = new Set(); // es6中的集合（不能放重复项）
+
+      this.deps = [];
+      this.user = options.user; // 用来表示watcher的状态
+
+      this.lazy = options.lazy;
+      this.dirty = this.lazy;
+
+      if (typeof exprOrFn === 'function') {
+        this.getter = exprOrFn;
+      } else {
+        // 将getter方法封装成一个取值函数
+        this.getter = function () {
+          var path = exprOrFn.split('.');
+          var val = vm;
+
+          for (var i = 0; i < path.length; i++) {
+            val = val[path[i]];
+          }
+
+          return val;
+        };
+      }
+
+      this.value = this.lazy ? undefined : this.get(); // 调用get方法 会让渲染watcher执行
+    } // watcher 里不能放重复的dep dep里不能放重复的watcher
+
+
+    _createClass(Watcher, [{
+      key: "addDep",
+      value: function addDep(dep) {
+        var id = dep.id;
+
+        if (!this.depsId.has(id)) {
+          this.depsId.add(id);
+          this.deps.push(dep);
+          dep.addSub(this);
+        }
+      }
+    }, {
+      key: "get",
+      value: function get() {
+        pushTarget(this); // 把watcher存起来 Dep.target
+
+        var value = this.getter.call(this.vm); // 渲染watcher执行
+
+        popTarget(); // 移除watcher
+
+        return value;
+      }
+    }, {
+      key: "update",
+      value: function update() {
+        if (this.sync) {
+          this.run();
+        } else if (this.lazy) {
+          // 计算属性依赖的值发生变化
+          this.dirty = true;
+        } else {
+          // 等待着 一起更新 因为每次调用update的时候 都放入了watcher
+          // this.get()
+          queueWatcher(this);
+        }
+      }
+    }, {
+      key: "evaluate",
+      value: function evaluate() {
+        this.value = this.get();
+        this.dirty = false;
+      }
+    }, {
+      key: "run",
+      value: function run() {
+        var oldValue = this.value; // 第一次渲染的值
+
+        var newValue = this.get();
+        this.value = newValue; // 当前是用户watcher 就执行用户定义的callback
+
+        if (this.user) {
+          this.callback.call(this.vm, oldValue, newValue);
+        }
+      }
+    }, {
+      key: "depend",
+      value: function depend() {
+        var i = this.deps.length;
+
+        while (i--) {
+          this.deps[i].depend();
+        }
+      }
+    }]);
+
+    return Watcher;
+  }();
+
   function initState(vm) {
     var opts = vm.$options; // vue的数据来源 属性 方法 数据 计算属性 watch
 
@@ -439,9 +592,13 @@
       initData(vm);
     }
 
-    if (opts.computed) ;
+    if (opts.computed) {
+      initComputed(vm, opts.computed);
+    }
 
-    if (opts.watch) ;
+    if (opts.watch) {
+      initWatch(vm, opts.watch);
+    }
   }
 
   function proxy(vm, source, key) {
@@ -470,6 +627,107 @@
     }
 
     observe(data); // 响应式原理
+  } // 内部原理都是通过watcher实现的
+
+
+  function initComputed(vm, computed) {
+    // _computedWatcher 存放着所有的计算属性对应的watcher
+    var watcher = vm._computedWatchers = {};
+
+    for (var key in computed) {
+      var userDef = computed[key]; // 获取用户的定义函数
+
+      var getter = typeof userDef === 'function' ? userDef : userDef.get; // 获得getter函数 lazy: true 表示的就是computed 计算属性
+      // 内部会根据lasy属性，不去调用getter
+
+      watcher[key] = new Watcher(vm, getter, function () {}, {
+        lazy: true
+      }); // 计算属性可以直接通过vm进行取值，所以将属性定义到实例上
+
+      defineComputed(vm, key, userDef);
+    }
+  } // 属性描述器
+
+
+  var sharedPropertyDefinition = {
+    enumerable: true,
+    configurable: true,
+    get: function get() {},
+    set: function set() {}
+  };
+
+  function defineComputed(target, key, userDef) {
+    if (typeof userDef === 'function') {
+      sharedPropertyDefinition.get = createComputedGetter(key);
+    } else {
+      sharedPropertyDefinition.get = createComputedGetter(key);
+
+      sharedPropertyDefinition.set = userDef.set || function () {};
+    }
+
+    Object.defineProperty(target, key, sharedPropertyDefinition);
+  }
+
+  function createComputedGetter(key) {
+    return function () {
+      // 拿到刚才的watcher
+      var watcher = this._computedWatchers[key];
+
+      if (watcher.dirty) {
+        // 如果dirty为true 就调用用户的方法
+        watcher.evaluate();
+      }
+
+      if (Dep.target) {
+        // watcher 指代的是计算属性 watcher
+        watcher.depend(); // 渲染watcher 也一并收集起来
+      }
+
+      return watcher.value;
+    };
+  } // watch的原理是通过Watcher
+
+
+  function initWatch(vm, watch) {
+    for (var key in watch) {
+      // 获取key对应的值
+      var handler = watch[key];
+
+      if (Array.isArray(handler)) {
+        for (var i = 0; i < handler.length; i++) {
+          // 如果用户传递的是一个数组，就循环数组将值依次进行创建
+          createWatcher(vm, key, handler[i]);
+        }
+      } else {
+        // 单纯的key value
+        createWatcher(vm, key, handler);
+      }
+    }
+  }
+
+  function createWatcher(vm, key, handler, options) {
+    if (isObject(handler)) {
+      options = handler;
+      handler = handler.handler;
+    }
+
+    if (typeof handler === 'string') {
+      handler = vm.$options.methods[handler];
+    } // watch的原理 就是$watch
+
+
+    return vm.$watch(key, handler, options);
+  }
+
+  function stateMixin(Vue) {
+    Vue.prototype.$watch = function (exprOrFn, cb, options) {
+      var vm = this;
+      console.log(exprOrFn, cb, options); // 用户watcher
+
+      options.user = true; // 当前是用户自己写的watcher
+
+      new Watcher(vm, exprOrFn, cb, options);
+    };
   }
 
   // ?:匹配不捕获
@@ -710,107 +968,6 @@
 
     return renderFn;
   }
-
-  var callbacks = [];
-  var waiting = false;
-
-  function flushCallback() {
-    callbacks.forEach(function (cb) {
-      return cb();
-    });
-    waiting = false;
-    callbacks = [];
-  }
-
-  function nextTick(cb) {
-    // 多次调用nextTick 如果没有刷新的时候，就先把他放到数组中，刷新后更改waiting
-    callbacks.push(cb);
-
-    if (waiting === false) {
-      setTimeout(flushCallback, 0);
-      waiting = true;
-    }
-  }
-
-  var queue = [];
-  var has = {};
-
-  function flushSchedularQueue() {
-    queue.forEach(function (watcher) {
-      return watcher.run();
-    });
-    queue = []; // 让下次可以继续使用 
-
-    has = {};
-  }
-
-  function queueWatcher(watcher) {
-    var id = watcher.id;
-
-    if (has[id] == null) {
-      queue.push(watcher);
-      has[id] = true; // 宏任务和微任务 (vue中使用了Vue.nextTick)
-      // Vuew.nextTick = promise / mutationObserver / setImmediate / setTimeout
-
-      nextTick(flushSchedularQueue);
-    }
-  }
-
-  var id$1 = 0;
-
-  var Watcher = /*#__PURE__*/function () {
-    function Watcher(vm, exprOrFn, callback, options) {
-      _classCallCheck(this, Watcher);
-
-      this.vm = vm;
-      this.callback = callback;
-      this.options = options;
-      this.id = id$1++;
-      this.getter = exprOrFn; // 将内部传过来的回调函数 放到getter属性上
-
-      this.depsId = new Set(); // es6中的集合（不能放重复项）
-
-      this.deps = [];
-      this.get(); // 调用get方法 会让渲染watcher执行
-    } // watcher 里不能放重复的dep dep里不能放重复的watcher
-
-
-    _createClass(Watcher, [{
-      key: "addDep",
-      value: function addDep(dep) {
-        var id = dep.id;
-
-        if (!this.depsId.has(id)) {
-          this.depsId.add(id);
-          this.deps.push(id);
-          dep.addSub(this);
-        }
-      }
-    }, {
-      key: "get",
-      value: function get() {
-        pushTarget(this); // 把watcher存起来 Dep.target
-
-        this.getter(); // 渲染watcher执行 render
-
-        popTarget(); // 移除watcher
-      }
-    }, {
-      key: "update",
-      value: function update() {
-        // 等待着 一起更新 因为每次调用update的时候 都放入了watcher
-        // this.get()
-        queueWatcher(this);
-      }
-    }, {
-      key: "run",
-      value: function run() {
-        this.get();
-      }
-    }]);
-
-    return Watcher;
-  }();
 
   function patch(oldVnode, vnode) {
     // 判断是更新还是要渲染
@@ -1330,29 +1487,12 @@
 
   initMixin(Vue);
   renderMixin(Vue);
-  lifecycleMixin(Vue); // 初始化全局api
+  lifecycleMixin(Vue);
+  stateMixin(Vue); // 初始化全局api
 
   initGlobalAPI(Vue);
-  var vm1 = new Vue({
-    data: {
-      name: 'hello'
-    }
-  });
-  var render1 = compilerToFunction("<div id='app' a='1' style='background:red'>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"B\">B</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n</div>");
-  var vnode$1 = render1.call(vm1);
-  var el = createElm(vnode$1);
-  document.body.appendChild(el);
-  var vm2 = new Vue({
-    data: {
-      name: 'yctang',
-      age: 18
-    }
-  });
-  var render2 = compilerToFunction("<div id=\"aaa\" b=\"2\" style=\"color:blue\">\n  <div style=\"background:green\" key=\"Q\">Q</div>\n  <div style=\"background:red\" key=\"A\">A</div>\n  <div style=\"background:yellow\" key=\"F\">F</div>\n  <div style=\"background:blue\" key=\"C\">C</div>\n  <div style=\"background:green\" key=\"N\">N</div>\n</div>");
-  var newVnode = render2.call(vm2);
-  setTimeout(function () {
-    patch(vnode$1, newVnode); // 传入两个虚拟节点，会在内部进行比对
-  }, 3000); // 1. diff算法的特点是 平级比对，正常操作dom元素时，很少涉及到父变成子，子变成父
+  // template -> render方法 -> vnode
+  // 1. diff算法的特点是 平级比对，正常操作dom元素时，很少涉及到父变成子，子变成父
 
   return Vue;
 
